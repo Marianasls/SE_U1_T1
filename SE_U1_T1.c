@@ -149,8 +149,7 @@ int main() {
         float media = soma / 500.0f;
 
         // Fórmula simplificada: R_x = R_conhecido * ADC_encontrado /(ADC_RESOLUTION - adc_encontrado)
-        // R_x = (R_conhecido * media) / (ADC_RESOLUTION - media);
-        R_x = 10000;
+        R_x = (R_conhecido * media) / (ADC_RESOLUTION - media);
         printf("R_x: %.2f\n", R_x);                   // Imprime o valor de R_x
         tensao = (ADC_VREF * media) / ADC_RESOLUTION; // Converte o valor do ADC para tensão
         printf("Tensão: %.2f\n", tensao);             // Imprime a tensão
