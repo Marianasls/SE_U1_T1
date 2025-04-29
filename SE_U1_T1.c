@@ -33,6 +33,7 @@ int R_conhecido = 10000;   // Resistor de 10k ohm
 float R_x = 0.0;           // Resistor desconhecido
 float ADC_VREF = 3.31;     // Tensão de referência do ADC
 int ADC_RESOLUTION = 4095; // Resolução do ADC (12 bits)
+ssd1306_t ssd;              // Estrutura para o display OLED
 
 // Trecho para modo BOOTSEL com botão B
 #include "pico/bootrom.h"
@@ -45,21 +46,6 @@ void gpio_irq_handler(uint gpio, uint32_t events)
 // Valores da série E24 (5% de tolerância)
 const int E24[] = {
     10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 27, 30, 33, 36, 39, 43, 47, 51, 56, 62, 68, 75, 82, 91
-};
-// Valores da série E96 (1% de tolerância)
-const float E96 = {
-    10.0, 10.2, 10.5, 10.7, 11.0, 11.3, 11.5, 11.8,
-    12.1, 12.4, 12.7, 13.0, 13.3, 13.7, 14.0, 14.3,
-    14.7, 15.0, 15.4, 15.8, 16.2, 16.5, 16.9, 17.4,
-    17.8, 18.2, 18.7, 19.1, 19.6, 20.0, 20.5, 21.0,
-    21.5, 22.1, 22.6, 23.2, 23.7, 24.3, 24.9, 25.5,
-    26.1, 26.7, 27.4, 28.0, 28.7, 29.4, 30.1, 30.9,
-    31.6, 32.4, 33.2, 34.0, 34.8, 35.7, 36.5, 37.4,
-    38.3, 39.2, 40.2, 41.2, 42.2, 43.2, 44.2, 45.3,
-    46.4, 47.5, 48.7, 49.9, 51.1, 52.3, 53.6, 54.9,
-    56.2, 57.6, 59.0, 60.4, 61.9, 63.4, 64.9, 66.5,
-    68.1, 69.8, 71.5, 73.2, 75.0, 76.8, 78.7, 80.6,
-    82.5, 84.5, 86.6, 88.7, 90.9, 93.1, 95.3, 97.6
 };
 
 // Cores correspondentes às faixas
@@ -75,6 +61,7 @@ const char *cores[] = {
     "gray",    // digito 8
     "white"    // digito 9
 };
+
 // rgb equivalente para cada cor
 const uint8_t cores_rgb[][3] = {
     {0, 0, 0},       // Preto
@@ -92,8 +79,9 @@ const uint8_t cores_rgb[][3] = {
 // declarando as funções
 void determine_colors(int resistencia, int *faixa1, int *faixa2, int *multiplicador);
 int find_E24_value(float resistencia);
-
-int main() {
+void init_all_pins() {
+    stdio_init_all();
+    
     // modo BOOTSEL com botão B
     gpio_init(botaoB);
     gpio_set_dir(botaoB, GPIO_IN);
@@ -111,7 +99,8 @@ int main() {
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);                    // Set the GPIO pin function to I2C
     gpio_pull_up(I2C_SDA);                                        // Pull up the data line
     gpio_pull_up(I2C_SCL);                                        // Pull up the clock line
-    ssd1306_t ssd;                                                // Inicializa a estrutura do display
+
+    // Inicializa o display OLED
     ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Inicializa o display
     ssd1306_config(&ssd);                                         // Configura o display
     ssd1306_send_data(&ssd);                                      // Envia os dados para o display
@@ -125,10 +114,14 @@ int main() {
     int sm = 0;
     uint offset = pio_add_program(pio, &ws2812_program);
     ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, false);
-
+    
     // Inicializa o ADC
     adc_init();
     adc_gpio_init(ADC_PIN); // GPIO 28 como entrada analógica
+}
+
+int main() {
+    init_all_pins();
 
     float tensao;
     char str_x[5];                                           // Buffer para armazenar a string
@@ -159,9 +152,7 @@ int main() {
 
         // Determinar as cores das faixas
         determine_colors(resistencia_e24, &faixa1, &faixa2, &multiplicador);
-        printf("Faixa 1: %d\n", faixa1);
-        printf("Faixa 2: %d\n", faixa2);
-        printf("Multiplicador: %d\n", multiplicador);
+        printf("Resistência E24 mais próxima: %d\n", resistencia_e24);
 
         sprintf(str_x, "%1.0f", media);              // Converte o inteiro em string
         sprintf(str_y, "%1.f", R_x);                 // Converte o float em string
@@ -189,11 +180,10 @@ int main() {
         if (leitura_anterior != resistencia_e24) {
             // Limpa a matriz de LEDs
             clear_buffer();
-            set_leds(0, 0, 0); // Limpa a matriz de LEDs 
             leitura_anterior = resistencia_e24;
         
             uint32_t cores_leds[] = {faixa1, faixa2, multiplicador};
-            uint8_t r, g, b, intensidade = 255;
+            uint8_t r, g, b, intensidade = 20;
             for (int i = 0; i < 3; i++) {
                 r = cores_rgb[cores_leds[i]][0];
                 g = cores_rgb[cores_leds[i]][1];
@@ -210,7 +200,7 @@ int main() {
                 int indices[] = {1+(i*10), 2+(i*10), 3+(i*10)};
 
                 turn_on_leds(indices, 3);
-                set_leds(cores_rgb[cor][0], cores_rgb[cor][1], cores_rgb[cor][2]);
+                set_leds(r, g, b);
             }
         }
         
@@ -236,8 +226,30 @@ int find_E24_value(float resistencia) {
 
 // Função para determinar as cores das faixas
 void determine_colors(int resistencia, int *faixa1, int *faixa2, int *multiplicador) {
-    int digitos = resistencia;
-    *faixa1 = digitos / 10; // Primeiro dígito
-    *faixa2 = digitos % 10; // Segundo dígito
-    *multiplicador = log10(resistencia / (*faixa1 * 10 + *faixa2));
+    // Calcular o multiplicador (potência de 10)
+    int potencia = 0;
+    int valor_original = resistencia;
+    
+    // Reduzir o valor para obter os primeiros dois dígitos significativos
+    while (resistencia >= 100) {
+        resistencia /= 10;
+        potencia++;
+    }
+    
+    // Extrair os dígitos
+    *faixa1 = resistencia / 10;
+    *faixa2 = resistencia % 10;
+    *multiplicador = potencia;
+    
+    // Tratar casos especiais (< 10 ohms)
+    if (*faixa1 == 0) {
+        *faixa1 = *faixa2;
+        *faixa2 = 0;
+        if (potencia > 0) {
+            // Ajustar o multiplicador se houve deslocamento
+            (*multiplicador)--;
+        }
+    }
+    
+    printf("Valor original: %d -> faixa1: %d, faixa2: %d, multiplicador: %d\n", valor_original, *faixa1, *faixa2, *multiplicador);
 }
