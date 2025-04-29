@@ -9,7 +9,7 @@ static inline void put_pixel(uint32_t pixel_grb);
 
 static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b);
 
-void set_leds(uint8_t r, uint8_t g, uint8_t b);
+void set_leds(int indices[][NUM_PIXELS], uint8_t cores[][3], int num_cores);
 
 void clear_buffer();
 

@@ -1,13 +1,7 @@
 #include "led_matrix.h"
 
-// Buffer para armazenar quais LEDs estão ligados matriz 5x5
-bool led_buffer[NUM_PIXELS] = {
-    0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0
-};
+// Buffer para armazenar quais LEDs estão ligados (não precisa mais tanto talvez)
+bool led_buffer[NUM_PIXELS] = { 0 };
 
 // Matriz de LEDs
 static inline void put_pixel(uint32_t pixel_grb) {
@@ -18,26 +12,35 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
     return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
 }
 
-void set_leds(uint8_t r, uint8_t g, uint8_t b) {
-    uint32_t color = urgb_u32(r, g, b);
+// NOVO set_leds: recebe matrizes de índices e cores
+void set_leds(int indices[][NUM_PIXELS], uint8_t cores[][3], int num_cores) {
+    uint32_t pixel_colors[NUM_PIXELS] = {0}; // buffer de cores de cada LED
+    
+    // Para cada grupo de cor
+    for (int cor = 0; cor < num_cores; cor++) {
+        uint8_t r = cores[cor][0];
+        uint8_t g = cores[cor][1];
+        uint8_t b = cores[cor][2];
+        uint32_t color = urgb_u32(r, g, b);
 
+        // Atribuir essa cor aos LEDs indicados
+        for (int i = 0; i < NUM_PIXELS; i++) {
+            int idx = indices[cor][i];
+            if (idx >= 0 && idx < NUM_PIXELS) { // checar se o índice é válido
+                pixel_colors[idx] = color;
+            }
+        }
+    }
+
+    // Agora envia todos os pixels para a fita/matriz
     for (int i = 0; i < NUM_PIXELS; i++) {
-        if (led_buffer[i]) {
-            put_pixel(color);
-        }
-        else {
-            put_pixel(0);
-        }
+        put_pixel(pixel_colors[i]);
     }
 }
 
-void turn_on_leds(int index[], int size) {
-    for(int i = 0; i < size; i++) {
-        led_buffer[index[i]] = 1;
-    }
-}
+// Opcional: limpar o led_buffer se quiser manter compatibilidade
 void clear_buffer() {
-    for(int i = 0; i < NUM_PIXELS; i++) {
+    for (int i = 0; i < NUM_PIXELS; i++) {
         led_buffer[i] = 0;
     }
 }

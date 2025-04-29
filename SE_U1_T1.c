@@ -140,6 +140,7 @@ int main() {
             sleep_ms(1);
         }
         float media = soma / 500.0f;
+        media = 2039; // Valor de media para teste
 
         // Fórmula simplificada: R_x = R_conhecido * ADC_encontrado /(ADC_RESOLUTION - adc_encontrado)
         R_x = (R_conhecido * media) / (ADC_RESOLUTION - media);
@@ -160,48 +161,77 @@ int main() {
         sprintf(color2, "%s", cores[faixa2]);
         sprintf(color3, "%s", cores[multiplicador]);
 
+        // Alteração na exibição dos dados no display
         ssd1306_fill(&ssd, !cor);                     // Limpa o display
-        ssd1306_rect(&ssd, 3, 3, 122, 60, cor, !cor); // Desenha um retângulo
-        ssd1306_line(&ssd, 3, 37, 123, 37, cor);   // Desenha uma linha
-        ssd1306_draw_string(&ssd, "Faixa1", 8, 6);   // Desenha uma string
-        ssd1306_draw_string(&ssd, color1, 60, 6);
-        ssd1306_draw_string(&ssd, "Faixa2", 8, 16);
-        ssd1306_draw_string(&ssd, color2, 60, 16);
-        ssd1306_draw_string(&ssd, "Multi.", 8, 26);
-        ssd1306_draw_string(&ssd, color3, 60, 26);
-        ssd1306_draw_string(&ssd, "ADC", 13, 41);
-        ssd1306_draw_string(&ssd, "Resisten.", 52, 41);
-        ssd1306_line(&ssd, 48, 37, 48, 60, cor);        // Desenha uma linha vertical
-        ssd1306_draw_string(&ssd, str_x, 8, 52);
-        ssd1306_draw_string(&ssd, str_y, 59, 52);
-        ssd1306_send_data(&ssd);                        // Atualiza o display
+
+        // Exibir as cores das faixas, lado a lado
+        ssd1306_draw_string(&ssd, "1:", 4, 6);    
+        ssd1306_draw_string(&ssd, color1, 24, 6);     // Cor da faixa 1
+        ssd1306_draw_string(&ssd, "2:", 70, 6);    // Título
+        ssd1306_draw_string(&ssd, color2, 84, 6);     // Cor da faixa 2
+        ssd1306_draw_string(&ssd, "3:", 4, 16);    // Título
+        ssd1306_draw_string(&ssd, color3, 24, 16);    // Cor do multiplicador
+
+        // Exibir o valor ADC e a resistência lida
+        ssd1306_draw_string(&ssd, "ADC:", 4, 30);     // Título ADC
+        ssd1306_draw_string(&ssd, str_x, 50, 30);     // Valor ADC
+        
+        ssd1306_line(&ssd, 3, 40, 123, 40, cor);   // Desenha uma linha
+        ssd1306_line(&ssd, 60, 40, 60, 60, cor);   // Desenha uma linha vertical
+        ssd1306_draw_string(&ssd, "R_x", 4, 45);     // Título resistência lida
+        ssd1306_draw_string(&ssd, str_y, 4, 55);     // Valor resistência lida
+        // Exibir o valor comercial E24
+        ssd1306_draw_string(&ssd, "E24", 68, 45);     // Título E24
+        char str_e24[10];
+        sprintf(str_e24, "%d", resistencia_e24);      // Converte o valor E24 para string
+        ssd1306_draw_string(&ssd, str_e24, 68, 55);   // Valor comercial E24
+
+        ssd1306_send_data(&ssd);                      // Atualiza o display
 
         // Atualizar a matriz de LEDs para exibir as cores
         if (leitura_anterior != resistencia_e24) {
-            // Limpa a matriz de LEDs
             clear_buffer();
+        
             leitura_anterior = resistencia_e24;
         
             uint32_t cores_leds[] = {faixa1, faixa2, multiplicador};
-            uint8_t r, g, b, intensidade = 20;
+            uint8_t intensidade = 20;
+        
+            int indices[3][NUM_PIXELS]; // 3 conjuntos de LEDs, até NUM_PIXELS cada 
+            uint8_t cores_array[3][3];  // 3 cores RGB
+        
+            // Inicializar a matriz de índices com -1
             for (int i = 0; i < 3; i++) {
-                r = cores_rgb[cores_leds[i]][0];
-                g = cores_rgb[cores_leds[i]][1];
-                b = cores_rgb[cores_leds[i]][2];
-
-                // Aplicar intensidade
+                for (int j = 0; j < NUM_PIXELS; j++) {
+                    indices[i][j] = -1;
+                }
+            }
+        
+            for (int i = 0; i < 3; i++) {
+                // Obter a cor RGB base
+                uint8_t r = cores_rgb[cores_leds[i]][0];
+                uint8_t g = cores_rgb[cores_leds[i]][1];
+                uint8_t b = cores_rgb[cores_leds[i]][2];
+        
                 r = (r * intensidade) / 255;
                 g = (g * intensidade) / 255;
                 b = (b * intensidade) / 255;
-
-                uint32_t cor = cores_leds[i];
-                printf("Cor: %s\n", cores[cor]);
-
-                int indices[] = {1+(i*10), 2+(i*10), 3+(i*10)};
-
-                turn_on_leds(indices, 3);
-                set_leds(r, g, b);
+        
+                printf("Cor: %s\n", cores[cores_leds[i]]);
+        
+                // Guardar no array de cores
+                cores_array[i][0] = r;
+                cores_array[i][1] = g;
+                cores_array[i][2] = b;
+        
+                // Definir quais LEDs acender para cada cor
+                indices[i][0] = 1 + (i * 10);
+                indices[i][1] = 2 + (i * 10);
+                indices[i][2] = 3 + (i * 10);
             }
+        
+            // Agora chama o novo set_leds
+            set_leds(indices, cores_array, 3);
         }
         
         sleep_ms(700); // espera 700ms até fazer a próxima leitura
@@ -210,18 +240,25 @@ int main() {
 
 // Função para encontrar o valor E24 mais próximo
 int find_E24_value(float resistencia) {
-    int multiplicador = 1;
-    while (resistencia > 100) {
-        resistencia /= 10;
-        multiplicador *= 10;
-    }
     int valor_proximo = E24[0];
-    for (int i = 1; i < sizeof(E24) / sizeof(E24[0]); i++) {
-        if (fabs(resistencia - E24[i]) < fabs(resistencia - valor_proximo)) {
-            valor_proximo = E24[i];
+    float menor_diferenca = fabs(resistencia - (E24[0])); // Inicializa com a diferença do primeiro valor
+
+    // Iterar sobre os multiplicadores (potências de 10)
+    for (int multiplicador = 1; multiplicador <= 1000000; multiplicador *= 10) {
+        // Iterar sobre os valores da série E24
+        for (int i = 0; i < sizeof(E24) / sizeof(E24[0]); i++) {
+            float valor_atual = E24[i] * multiplicador;
+            float diferenca = fabs(resistencia - valor_atual);
+
+            // Atualizar o valor mais próximo se a diferença for menor
+            if (diferenca < menor_diferenca) {
+                menor_diferenca = diferenca;
+                valor_proximo = valor_atual;
+            }
         }
     }
-    return valor_proximo * multiplicador;
+
+    return valor_proximo;
 }
 
 // Função para determinar as cores das faixas
