@@ -35,14 +35,6 @@ float ADC_VREF = 3.31;     // Tensão de referência do ADC
 int ADC_RESOLUTION = 4095; // Resolução do ADC (12 bits)
 ssd1306_t ssd;              // Estrutura para o display OLED
 
-// Trecho para modo BOOTSEL com botão B
-#include "pico/bootrom.h"
-#define botaoB 6
-void gpio_irq_handler(uint gpio, uint32_t events)
-{
-    reset_usb_boot(0, 0);
-}
-
 // Valores da série E24 (5% de tolerância)
 const int E24[] = {
     10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 27, 30, 33, 36, 39, 43, 47, 51, 56, 62, 68, 75, 82, 91
@@ -79,6 +71,7 @@ const uint8_t cores_rgb[][3] = {
 // declarando as funções
 void determine_colors(int resistencia, int *faixa1, int *faixa2, int *multiplicador);
 int find_E24_value(float resistencia);
+
 void init_all_pins() {
     stdio_init_all();
     
@@ -92,7 +85,7 @@ void init_all_pins() {
     gpio_set_dir(Botao_A, GPIO_IN);
     gpio_pull_up(Botao_A);
 
-    // I2C Initialisation. Using it at 400Khz.
+    // Inicializa I2C com frequência de 400Khz.
     i2c_init(I2C_PORT, 400 * 1000);
 
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);                    // Set the GPIO pin function to I2C
@@ -124,9 +117,10 @@ int main() {
     init_all_pins();
 
     float tensao;
-    char str_x[5];                                           // Buffer para armazenar a string
-    char str_y[5];                                           // Buffer para armazenar a string
-    char str_colors[20], color1[10], color2[10], color3[10]; // Buffer para armazenar a string
+    // Buffer para armazenar a string
+    char str_x[5];                                           
+    char str_y[5];                                           
+    char str_colors[20], color1[10], color2[10], color3[10]; 
 
     bool cor = true;
     int faixa1, faixa2, multiplicador, leitura_anterior = 0;
@@ -164,11 +158,11 @@ int main() {
         ssd1306_fill(&ssd, !cor);                     // Limpa o display
 
         // Exibir as cores das faixas, lado a lado
-        ssd1306_draw_string(&ssd, "1:", 4, 6);    
+        ssd1306_draw_string(&ssd, "1:", 4, 6);
         ssd1306_draw_string(&ssd, color1, 24, 6);     // Cor da faixa 1
-        ssd1306_draw_string(&ssd, "2:", 70, 6);    // Título
+        ssd1306_draw_string(&ssd, "2:", 70, 6);
         ssd1306_draw_string(&ssd, color2, 84, 6);     // Cor da faixa 2
-        ssd1306_draw_string(&ssd, "3:", 4, 16);    // Título
+        ssd1306_draw_string(&ssd, "3:", 4, 16);
         ssd1306_draw_string(&ssd, color3, 24, 16);    // Cor do multiplicador
 
         // Exibir o valor ADC e a resistência lida
@@ -177,10 +171,10 @@ int main() {
         
         ssd1306_line(&ssd, 3, 40, 123, 40, cor);   // Desenha uma linha
         ssd1306_line(&ssd, 60, 40, 60, 60, cor);   // Desenha uma linha vertical
-        ssd1306_draw_string(&ssd, "R_x", 4, 45);     // Título resistência lida
+        ssd1306_draw_string(&ssd, "R_x", 4, 45);
         ssd1306_draw_string(&ssd, str_y, 4, 55);     // Valor resistência lida
         // Exibir o valor comercial E24
-        ssd1306_draw_string(&ssd, "E24", 68, 45);     // Título E24
+        ssd1306_draw_string(&ssd, "E24", 68, 45);
         char str_e24[10];
         sprintf(str_e24, "%d", resistencia_e24);      // Converte o valor E24 para string
         ssd1306_draw_string(&ssd, str_e24, 68, 55);   // Valor comercial E24
@@ -196,7 +190,7 @@ int main() {
             uint32_t cores_leds[] = {faixa1, faixa2, multiplicador};
             uint8_t intensidade = 20;
         
-            int indices[3][NUM_PIXELS]; // 3 conjuntos de LEDs, até NUM_PIXELS cada 
+            int indices[3][NUM_PIXELS];
             uint8_t cores_array[3][3];  // 3 cores RGB
         
             // Inicializar a matriz de índices com -1
@@ -229,7 +223,6 @@ int main() {
                 indices[i][2] = 3 + (i * 10);
             }
         
-            // Agora chama o novo set_leds
             set_leds(indices, cores_array, 3);
         }
         
