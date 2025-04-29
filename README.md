@@ -11,7 +11,7 @@ O sistema também exibe as informações no display OLED e utiliza uma matriz de
 - Medição de resistores desconhecidos utilizando um divisor de tensão.
 - Exibição dos valores medidos no display OLED.
 - Representação das cores das faixas do resistor na matriz de LEDs WS2812.
-- Suporte para valores de resistores das séries E24 (5% de tolerância) e E96 (1% de tolerância).
+- Suporte para valores de resistores das séries E24 (5% de tolerância).
 
 ## Componentes Utilizados
 
