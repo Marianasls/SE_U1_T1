@@ -35,6 +35,14 @@ float ADC_VREF = 3.31;     // Tensão de referência do ADC
 int ADC_RESOLUTION = 4095; // Resolução do ADC (12 bits)
 ssd1306_t ssd;              // Estrutura para o display OLED
 
+// Trecho para modo BOOTSEL com botão B
+#include "pico/bootrom.h"
+#define botaoB 6
+void gpio_irq_handler(uint gpio, uint32_t events)
+{
+    reset_usb_boot(0, 0);
+}
+
 // Valores da série E24 (5% de tolerância)
 const int E24[] = {
     10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 27, 30, 33, 36, 39, 43, 47, 51, 56, 62, 68, 75, 82, 91
