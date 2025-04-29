@@ -140,7 +140,6 @@ int main() {
             sleep_ms(1);
         }
         float media = soma / 500.0f;
-        media = 2039; // Valor de media para teste
 
         // Fórmula simplificada: R_x = R_conhecido * ADC_encontrado /(ADC_RESOLUTION - adc_encontrado)
         R_x = (R_conhecido * media) / (ADC_RESOLUTION - media);

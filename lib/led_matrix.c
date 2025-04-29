@@ -1,6 +1,5 @@
 #include "led_matrix.h"
 
-// Buffer para armazenar quais LEDs estão ligados (não precisa mais tanto talvez)
 bool led_buffer[NUM_PIXELS] = { 0 };
 
 // Matriz de LEDs
