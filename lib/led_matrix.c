@@ -12,7 +12,7 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
     return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
 }
 
-// NOVO set_leds: recebe matrizes de índices e cores
+// recebe matrizes de índices e cores
 void set_leds(int indices[][NUM_PIXELS], uint8_t cores[][3], int num_cores) {
     uint32_t pixel_colors[NUM_PIXELS] = {0}; // buffer de cores de cada LED
     
@@ -23,7 +23,7 @@ void set_leds(int indices[][NUM_PIXELS], uint8_t cores[][3], int num_cores) {
         uint8_t b = cores[cor][2];
         uint32_t color = urgb_u32(r, g, b);
 
-        // Atribuir essa cor aos LEDs indicados
+        // Atribuir cor aos LEDs indicados
         for (int i = 0; i < NUM_PIXELS; i++) {
             int idx = indices[cor][i];
             if (idx >= 0 && idx < NUM_PIXELS) { // checar se o índice é válido
@@ -32,13 +32,11 @@ void set_leds(int indices[][NUM_PIXELS], uint8_t cores[][3], int num_cores) {
         }
     }
 
-    // Agora envia todos os pixels para a fita/matriz
     for (int i = 0; i < NUM_PIXELS; i++) {
         put_pixel(pixel_colors[i]);
     }
 }
 
-// Opcional: limpar o led_buffer se quiser manter compatibilidade
 void clear_buffer() {
     for (int i = 0; i < NUM_PIXELS; i++) {
         led_buffer[i] = 0;
